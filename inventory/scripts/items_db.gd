@@ -51,7 +51,6 @@ var ITEMS: Dictionary = {
 		"stackble": false
 	},
 	
-	
 	"debug_boarder":{ 
 		"icon": "res://assets/UI/Inventory/gird_boarder.png",
 		"grid_size": Vector2i(3, 4),
@@ -67,3 +66,19 @@ var ITEMS: Dictionary = {
 
 func get_item(item_id: String) -> Dictionary:
 	return ITEMS[item_id] if item_id in ITEMS else ITEMS["error"]
+
+func save_to_file(item_list: Array, file_path: String) -> void:
+	if item_list.is_empty():
+		print_rich("[color=red]Nothing to save![/color]")
+		return
+	
+	var FILE: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
+	FILE.store_var(item_list)
+	print_rich("[color=green]Item saved![/color]")
+	FILE.close()
+
+func load_from_file(file_path: String) -> Array:
+	var FILE: FileAccess = FileAccess.open(file_path, FileAccess.READ)
+	var data: Array = FILE.get_var()
+	FILE.close()
+	return data

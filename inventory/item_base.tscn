@@ -13,15 +13,16 @@
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t02w0"]
 
-[node name="Item" type="Control" node_paths=PackedStringArray("actionList", "grid_space", "textIcon", "countLabel", "shadow")]
-layout_mode = 3
-anchors_preset = 0
+[node name="ItemIcon" type="TextureRect" node_paths=PackedStringArray("actionList", "grid_space", "countLabel", "shadow")]
+z_index = 1
 offset_right = 40.0
 offset_bottom = 40.0
+mouse_filter = 2
+texture = ExtResource("2_cak5d")
+expand_mode = 1
 script = ExtResource("1_tsbf5")
 actionList = NodePath("MenuButton")
 grid_space = NodePath("grid_space")
-textIcon = NodePath("ItemIcon")
 countLabel = NodePath("Item_Count")
 shadow = NodePath("shadow")
 
@@ -43,18 +44,8 @@ offset_right = 40.0
 offset_bottom = 23.0
 text = "X 19"
 
-[node name="ItemIcon" type="TextureRect" parent="."]
-z_index = 1
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-mouse_filter = 2
-texture = ExtResource("2_cak5d")
-expand_mode = 1
-
 [node name="grid_space" type="ColorRect" parent="."]
 show_behind_parent = true
-z_index = 1
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0

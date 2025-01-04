@@ -1,16 +1,16 @@
+#Grid-Based Inventory system by Hexadotz
 class_name Inventory extends TextureRect
 
 #NOTE: #if GridBase is a child of a container you need to use this to reference the container
 #that control GridBBases's transform not doing so will cause the hover rect to be offseted
+@export var onload: bool = false ## loads the items from the save file
+@export var Save_file_path: String = "res://saved_data.dat"
 
 @export_subgroup("Grid")
 @export var cell_size: int = 32
 @export_range(1, 100, 1) var grid_height: int = 4
 @export_range(1, 100, 1) var grid_width: int = 4
-
-@export_subgroup("sounds")
-@export var mouse_moved: AudioStreamMP3
-@export var item_selected: AudioStreamMP3
+@export var hover_texture: Texture2D 
 
 @onready var itemBase: PackedScene = preload("res://inventory/item_base.tscn")
 @onready var hover_rect: TextureRect = $HoverRect
@@ -20,33 +20,25 @@ var offset: Vector2 = Vector2.ZERO
 var mouse_pos: Vector2 = Vector2.ZERO
 var item_last_position: Vector2i = Vector2i.ZERO
 
-var item_list: Array[Item] = []
+var SAVED_ITEMS: Array[Dictionary] = []
 
-signal focus_grid_moved()
-signal item_rotated()
-signal item_swapped()
-
-#TODO: fix this retarded pixel offset, the reason the hover rect get's offseted is because the position of the grid
-#intervene with the way it moves
+signal focus_grid_moved() ##Emitted when the mosue moves inside the inventory
+signal item_rotated() ##Emitted when the item is rotated
+signal item_swapped() ##Emitted when two items swap each other's places
 #--------------------------------------------------#
 func _ready() -> void:
+	hover_rect.texture = hover_texture
+	
 	stretch_mode = TextureRect.STRETCH_TILE
 	hover_rect.size = Vector2i(cell_size, cell_size)
-	
 	custom_minimum_size = Vector2i(cell_size * grid_height, cell_size * grid_width)
-	_prep_itemList()
 	
-	await get_tree().create_timer(1).timeout
-	add_item("wep_grenad")
+	if onload:
+		load_items()
 
 func _physics_process(_delta: float) -> void:
 	mouse_pos = get_global_mouse_position()
 	_hover_mouse()
-	
-	debugger_lebel.text = str(item_held)
-	
-	if Input.is_action_just_pressed("rotate") and item_held == null:
-		get_tree().reload_current_scene()
 	
 	if Input.is_action_just_pressed("mouse1"):
 		if item_held == null:
@@ -57,6 +49,10 @@ func _physics_process(_delta: float) -> void:
 	if item_held != null:
 		item_held.global_position = mouse_pos + offset
 		
+		# change the color depending on the placement: 
+		#	orange means it will swap the place with the item hovering over it
+		#	red means it cannont be placed because it's either outside of the zone or overlapping with multiple items
+		#	green means it's a valid spot
 		var zone: Rect2 = Rect2(hover_rect.global_position , item_held.get_global_rect().size)
 		if area_is_clear(zone, [item_held]):
 			item_held.shadow.color = item_held.VALID_SPOT
@@ -67,20 +63,18 @@ func _physics_process(_delta: float) -> void:
 		# rotate the item
 		if Input.is_action_just_pressed("rotate"):
 			item_held.rotate()
+	
+	if Input.is_action_just_pressed("test"):
+		pass
 
-var prev_position: Vector2 = Vector2.ZERO
 func _hover_mouse() -> void:
-	if is_on_grid(mouse_pos):
+	if get_global_rect().has_point(mouse_pos):
 		var resault_position: Vector2 = Vector2.ZERO
+		var prev_position: Vector2 = hover_rect.position # we save the previous position to compare it with the new one later
 		
-		prev_position = hover_rect.position
-		
-		if item_held == null:
-			var steps: Vector2i = (mouse_pos - global_position) / cell_size
-			resault_position = (steps * cell_size)
-		else:
-			var steps2: Vector2i = (item_held.global_position - global_position) / cell_size
-			resault_position = (steps2 * cell_size) 
+		# snaps the hover rectangle to the grid that is closest to the mouse
+		var snaper: Vector2 = (mouse_pos - global_position) if item_held == null else (item_held.global_position - global_position)
+		resault_position = snaper.snapped(Vector2(cell_size, cell_size))
 		
 		hover_rect.position = resault_position
 		
@@ -88,37 +82,79 @@ func _hover_mouse() -> void:
 			emit_signal("focus_grid_moved")
 
 #---------------------item handeling----------------------#
-func add_item(itemId: String = "", quantity: int = 1) -> void:
+##Adds and item using it's id, returns true if the item been added otherwise false
+func add_item(itemId: String = "", quantity: int = 1) -> bool:
 	# spawn the item in an empty place
-	for line in range(global_position.y, global_position.y + (cell_size * grid_width), cell_size):
-		for column in range(global_position.x, global_position.x + (cell_size * grid_height), cell_size):
+	var rect: Rect2i = get_global_rect()
+	var item_data: Dictionary = ItemsDB.get_item(itemId)
+	# loop through evrey cell in the inventory
+	for line in range(rect.position.y, rect.end.y, cell_size):
+		for column in range(rect.position.x, rect.end.x, cell_size):
 			
-			var place_point: Vector2i = Vector2i(column, line)
-			# check if the location we're putting in is valid
-			var dick: Dictionary = ItemsDB.get_item(itemId)
-			var area: Rect2 = Rect2(Vector2i(place_point), Vector2i(dick.grid_size * cell_size))
+			var place_point: Vector2i = Vector2i(column, line) # the location we're going to place the item at
+			var area: Rect2 = Rect2(Vector2i(place_point), Vector2i(item_data.grid_size * cell_size)) # construct a bounding box from the item id to use
 			
-			if dick.stackble:
-				for itm in item_list:
+			# if the item we're adding is stackable and is already in the inventory just add to the quantity
+			if item_data.stackble:
+				for itm in get_items():
 					if itm.item_id == itemId:
 						itm.quantity += quantity
-						return
+						return true
+				
 			
 			if area_is_clear(area, [item_held]):
 				var item_instance: Item = itemBase.instantiate()
 				add_child(item_instance)
 				item_instance.prep_item(itemId)
 				item_instance.global_position = place_point
-				item_list.append(item_instance)
-				return # gtfo once done
+				
+				return true # gtfo once done
+	
+	push_error("Could not place item, inventory full")
+	return false
+
+# fuck
+func save_items() -> void:
+	SAVED_ITEMS.clear()
+	
+	for item: Item in get_items():
+		# the data that's being saved, add new properties if you need to, just make sure they are also in 
+		var save_data: Dictionary = {
+			"id": item.item_id,
+			"pos": item.position,
+			"qty": item.quantity,
+			"rotated": item.is_rotated
+		}
+		SAVED_ITEMS.append(save_data)
+	print(SAVED_ITEMS)
+	
+	# save to the file after that's done
+	ItemsDB.save_to_file(SAVED_ITEMS, Save_file_path)
+
+func load_items() -> void:
+	# get the items from the file
+	SAVED_ITEMS = ItemsDB.load_from_file(Save_file_path)
+	
+	for item in SAVED_ITEMS:
+		var item_instance: Item = itemBase.instantiate()
+		add_child(item_instance)
+		item_instance.prep_item(item["id"])
+		
+		item_instance.position = item["pos"]
+		item_instance.quantity = item["qty"]
+		
+		if item["rotated"]:
+			item_instance.rotate()
+
+
 
 func _grab() -> void:
 	# if we have an item already pickeed up, don't bother
 	if item_held != null:
 		return
 	
-	if not location_is_clear(mouse_pos) and is_on_grid(mouse_pos):
-		for cell: Item in item_list:
+	if not location_is_clear(mouse_pos) and get_global_rect().has_point(mouse_pos):
+		for cell: Item in get_items():
 			if cell.get_global_rect().has_point(mouse_pos):
 				item_held = cell
 				offset = cell.global_position - mouse_pos
@@ -131,17 +167,19 @@ func _release() -> void:
 		return
 	
 	var area: Rect2 = Rect2(hover_rect.global_position , item_held.get_global_rect().size)
-	#for loops, so many for loops...
-	for itm in item_list:
-		if itm != item_held:
+	# for stackable item, go throught evrey item in the inventory if the item we're releasing it on is the same type as the one
+	# currently holding and is stackable then add it to the quantity
+	for itm in get_items():
+		if itm != item_held and itm.stackable:
 			if itm.get_global_rect().intersects(area) and itm.item_id == item_held.item_id:
 				itm.quantity += item_held.quantity
-				item_list.erase(item_held)
+				# remove the item from the grid after adding its quantity
 				item_held.queue_free()
 				item_held = null
 				return
 	
-	if not is_on_grid(mouse_pos) or not is_inside_rect(area):
+	# if the items are different on cannot be stacked
+	if not get_global_rect().has_point(mouse_pos) or not is_inside_rect(area): # if the placement is invalid
 		item_held.global_position = item_last_position
 		item_last_position = Vector2i.ZERO
 		item_held = null
@@ -153,11 +191,9 @@ func _release() -> void:
 		else:
 			_swap()
 
-@onready var debugger_lebel: Label = $"CanvasLayer/debug pannel/PrintLabel"
-#i fucking hate this
 func _swap() -> void:
 	var occupied: Array = []
-	for cell: Item in item_list:
+	for cell: Item in get_items():
 		if cell == item_held:
 			continue
 		if cell.get_global_rect().intersects(item_held.get_global_rect()):
@@ -177,12 +213,10 @@ func _swap() -> void:
 	emit_signal("item_swapped")
 
 #---------------------------------------------------------#
-func is_on_grid(location: Vector2) -> bool:
-	return true if get_global_rect().has_point(location) else false
-
+##Returns the amount of items that are on top of the current held item
 func items_in_zone() -> int:
 	var count: int = 0
-	for cell: Item in item_list:
+	for cell: Item in get_items():#item_list:
 		if cell == item_held:
 			continue
 		if cell.get_global_rect().intersects(item_held.get_global_rect()):
@@ -190,58 +224,32 @@ func items_in_zone() -> int:
 	
 	return count
 
-# checks if the area we're placing the item at isvalid (not outside the grid or on top another item)
+##Checks if the area we're placing the item at isvalid (not outside the grid or on top another item)
 func area_is_clear(zone: Rect2, execlude: Array) -> bool:
 	# check if it's on top of another item
-	for cell: Item in item_list:
+	for cell: Item in get_items():
 		if cell not in execlude:
 			if cell.get_global_rect().intersects(zone):
 				return false
 	
 	return is_inside_rect(zone)
 
+##Checks if the given zone if fully inside
 func is_inside_rect(zone: Rect2) -> bool:
-	# then checks if it's fully inside the grid
-	if not is_on_grid(zone.position + Vector2(1, 1)) or not is_on_grid(zone.end - Vector2(1,1)):
+	# if the top left and the bottom right corners are inside the zone, then it's valid otherwise it's not valid
+	if not get_global_rect().has_point(zone.position + Vector2(1, 1)) or not get_global_rect().has_point(zone.end - Vector2(1,1)):
 		return false
 	return true
 
+##Checks if the position given is clear or not
 func location_is_clear(pos: Vector2) -> bool:
-	for cell: Item in item_list:
+	for cell: Item in get_items():
 		if cell != item_held:
 			if cell.get_global_rect().has_point(pos):
 				return false
 	return true
 
-#------------------------DEBUGGING-------------------------#
-#NOTE: remove this shit later
-@onready var quantit: LineEdit = $"CanvasLayer/debug pannel/VBoxContainer/quantity"
-func _on_debug_button_pressed() -> void:
-	#var itemSize: Vector2i = Vector2i(int($"CanvasLayer/debug pannel/VBoxContainer/HBoxContainer/width".text), int($"CanvasLayer/debug pannel/VBoxContainer/HBoxContainer/height".text))
-	var item_id: String = itemList.get_item_text(itemList.get_selected_id())
-	var qt: int = 1 if quantit.text == "" else int(quantit.text)
-	add_item(item_id, qt)
-
-func _on_change_grid_size_pressed() -> void:
-	var width: int = int($"CanvasLayer/debug pannel/VBoxContainer2/HBoxContainer/Gwidth".text)
-	var height: int = int($"CanvasLayer/debug pannel/VBoxContainer2/HBoxContainer/Gheight".text)
-	
-	grid_height = height
-	grid_width = width
-	custom_minimum_size = Vector2i(cell_size * grid_height, cell_size * grid_width)
-
-@onready var itemList: OptionButton = $"CanvasLayer/debug pannel/VBoxContainer/OptionButton"
-func _prep_itemList() -> void:
-	for ids in ItemsDB.ITEMS.keys():
-		itemList.add_item(ids)
-	
-	itemList.add_item("null")
-
-func _on_focus_grid_moved() -> void:
-	print("penis")
-
-func _on_item_rotated() -> void:
-	print("rotated")
-
-func _on_item_swapped() -> void:
-	print("swapped")
+##Returns a list of all the items that are in the inventory, NOTE: the reason why we use the slice is because we don't want the
+##hover rect to be counted as an item
+func get_items() -> Array:
+	return get_children().slice(1, get_children().size())
