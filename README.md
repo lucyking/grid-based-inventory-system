@@ -8,16 +8,16 @@ A  comprehensive grid-based inventory management system inspired by survival hor
 ## Features
 <table border="0">
    <tr>
-      <th>Stacking</th>
-      <th>Swapping</th>
-      <th>Rotation</th>
-      <th>Saving and loading items</th>
+	  <th>Stacking</th>
+	  <th>Swapping</th>
+	  <th>Rotation</th>
+	  <th>Saving and loading items</th>
    </tr>
    <tr>
-      <td><img src="https://github.com/user-attachments/assets/88428f59-2a19-48b0-8b6b-a91209d990be" height="256" width="256"></td>
-      <td><img src="https://github.com/user-attachments/assets/ff992301-7644-4eed-adea-e917434104e2" height="256" width="256"></td>
-      <td><img src="https://github.com/user-attachments/assets/98799ff7-9463-483d-a1a2-1518975325d2" height="256" width="256"></td>
-      <td><img src="https://github.com/user-attachments/assets/f616e5a0-baa3-45ec-b359-01e6235a3787" height="256" width="526"></td>
+	  <td><img src="https://github.com/user-attachments/assets/88428f59-2a19-48b0-8b6b-a91209d990be" height="256" width="256"></td>
+	  <td><img src="https://github.com/user-attachments/assets/ff992301-7644-4eed-adea-e917434104e2" height="256" width="256"></td>
+	  <td><img src="https://github.com/user-attachments/assets/98799ff7-9463-483d-a1a2-1518975325d2" height="256" width="256"></td>
+	  <td><img src="https://github.com/user-attachments/assets/f616e5a0-baa3-45ec-b359-01e6235a3787" height="256" width="526"></td>
    </tr>
 </table>
 

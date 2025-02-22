@@ -1,5 +1,5 @@
 extends Control
-#This just for testing#
+#This scene is just for testing#
 
 @export var Grid_node: Inventory
 
@@ -7,7 +7,7 @@ extends Control
 func _ready() -> void:
 	_prep_itemList()
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	debugger_lebel.text = str(Grid_node.item_held) #NOTE: this is for debugging only remove it
 	
 	if Input.is_action_just_pressed("rotate") and Grid_node.item_held == null:
@@ -28,7 +28,7 @@ func _on_change_grid_size_pressed() -> void:
 	
 	Grid_node.grid_height = height
 	Grid_node.grid_width = width
-	Grid_node.custom_minimum_size = Vector2i(Grid_node.cell_size, Grid_node.cell_size) * Grid_node.grid_width
+	Grid_node.custom_minimum_size = Vector2i(Grid_node.cell_size * Grid_node.grid_width, Grid_node.cell_size * Grid_node.grid_height)
 
 @onready var itemList: OptionButton = $"CanvasLayer/debug pannel/VBoxContainer/OptionButton"
 func _prep_itemList() -> void:

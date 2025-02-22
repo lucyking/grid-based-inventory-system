@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://gdj1v7g6crvq"]
+[gd_scene load_steps=5 format=3 uid="uid://gdj1v7g6crvq"]
 
 [ext_resource type="Script" path="res://test_scene.gd" id="1_dcr3e"]
-[ext_resource type="PackedScene" uid="uid://tb68lqtvfbbk" path="res://inventory/grid_base.tscn" id="2_1cc8y"]
+[ext_resource type="Script" path="res://inventory/scripts/grid_base.gd" id="2_e0bwv"]
+[ext_resource type="Texture2D" uid="uid://n7rcfk6jojsp" path="res://assets/UI/Inventory/gird_cell.png" id="2_qt5eq"]
+[ext_resource type="Texture2D" uid="uid://cau3snc3sd1sw" path="res://assets/UI/Inventory/gird_cell_selected.png" id="3_534d6"]
 
 [node name="Test_scene" type="Control" node_paths=PackedStringArray("Grid_node")]
 layout_mode = 3
@@ -11,7 +13,28 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_dcr3e")
-Grid_node = NodePath("GridBase")
+Grid_node = NodePath("Inventory")
+
+[node name="Inventory" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("2_qt5eq")
+script = ExtResource("2_e0bwv")
+grid_height = 5
+grid_width = 5
+hover_texture = ExtResource("3_534d6")
+
+[node name="Inventory2" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.01
+offset_left = 256.0
+offset_right = 288.0
+offset_bottom = 40.0
+texture = ExtResource("2_qt5eq")
+script = ExtResource("2_e0bwv")
+hover_texture = ExtResource("3_534d6")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -117,9 +140,6 @@ text = "Testing"
 autowrap_mode = 3
 text_overrun_behavior = 3
 max_lines_visible = 2
-
-[node name="GridBase" parent="." instance=ExtResource("2_1cc8y")]
-layout_mode = 0
 
 [connection signal="pressed" from="CanvasLayer/debug pannel/VBoxContainer/DebugButton" to="." method="_on_debug_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/debug pannel/VBoxContainer/change grid size" to="." method="_on_change_grid_size_pressed"]

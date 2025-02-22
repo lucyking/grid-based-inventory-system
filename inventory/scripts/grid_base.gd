@@ -8,12 +8,12 @@ class_name Inventory extends TextureRect
 
 @export_subgroup("Grid")
 @export var cell_size: int = 32
-@export_range(1, 100, 1) var grid_height: int = 4
-@export_range(1, 100, 1) var grid_width: int = 4
+@export_range(1, 100, 1) var grid_height: int = 8
+@export_range(1, 100, 1) var grid_width: int = 8
 @export var hover_texture: Texture2D 
 
 @onready var itemBase: PackedScene = preload("res://inventory/item_base.tscn")
-@onready var hover_rect: TextureRect = $HoverRect
+var hover_rect: TextureRect
 
 var item_held: Item = null
 var offset: Vector2 = Vector2.ZERO
@@ -21,20 +21,33 @@ var mouse_pos: Vector2 = Vector2.ZERO
 var item_last_position: Vector2i = Vector2i.ZERO
 
 var SAVED_ITEMS: Array[Dictionary] = []
+var inventories: Array[Node] = []
 
+@warning_ignore("unused_signal")
 signal focus_grid_moved() ##Emitted when the mosue moves inside the inventory
+@warning_ignore("unused_signal")
 signal item_rotated() ##Emitted when the item is rotated
+@warning_ignore("unused_signal")
 signal item_swapped() ##Emitted when two items swap each other's places
 #--------------------------------------------------#
 func _ready() -> void:
-	hover_rect.texture = hover_texture
-	
 	stretch_mode = TextureRect.STRETCH_TILE
-	hover_rect.size = Vector2i(cell_size, cell_size)
 	custom_minimum_size = Vector2i(cell_size * grid_height, cell_size * grid_width)
+	
+	add_to_group("grid_inventory")
+	
+	# create the hover rect at scene startup to make the inventory more compact
+	var hover_child: TextureRect = TextureRect.new()
+	hover_child.texture = hover_texture
+	hover_child.size = Vector2i(cell_size, cell_size)
+	add_child(hover_child)
+	hover_rect = hover_child
 	
 	if onload:
 		load_items()
+	
+	inventories = get_tree().get_nodes_in_group("grid_inventory")
+	inventories.erase(self)
 
 func _physics_process(_delta: float) -> void:
 	mouse_pos = get_global_mouse_position()
@@ -63,9 +76,6 @@ func _physics_process(_delta: float) -> void:
 		# rotate the item
 		if Input.is_action_just_pressed("rotate"):
 			item_held.rotate()
-	
-	if Input.is_action_just_pressed("test"):
-		pass
 
 func _hover_mouse() -> void:
 	if get_global_rect().has_point(mouse_pos):
@@ -73,7 +83,7 @@ func _hover_mouse() -> void:
 		var prev_position: Vector2 = hover_rect.position # we save the previous position to compare it with the new one later
 		
 		# snaps the hover rectangle to the grid that is closest to the mouse
-		var snaper: Vector2 = (mouse_pos - global_position) if item_held == null else (item_held.global_position - global_position)
+		var snaper: Vector2 = ((mouse_pos - global_position) - (Vector2(cell_size, cell_size) / 2)) if item_held == null else (item_held.global_position - global_position)
 		resault_position = snaper.snapped(Vector2(cell_size, cell_size))
 		
 		hover_rect.position = resault_position
@@ -146,8 +156,6 @@ func load_items() -> void:
 		if item["rotated"]:
 			item_instance.rotate()
 
-
-
 func _grab() -> void:
 	# if we have an item already pickeed up, don't bother
 	if item_held != null:
@@ -177,7 +185,7 @@ func _release() -> void:
 				item_held.queue_free()
 				item_held = null
 				return
-	
+
 	# if the items are different on cannot be stacked
 	if not get_global_rect().has_point(mouse_pos) or not is_inside_rect(area): # if the placement is invalid
 		item_held.global_position = item_last_position
