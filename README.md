@@ -37,7 +37,7 @@ UPDATE: there is now a document explaining how to use this thing
    - Use the `add_item(item_id)` method provided by the inventory system.
    - Call this method to add items from the `ITEMS` dictionary to the inventory.
 
-##Credits
+## Credits
 Some of the images used for the demo are from [PNGEgg](https://www.pngegg.com/)
 Special thanks to Piducod for finding some of the bug and reporting it
 
