@@ -245,7 +245,7 @@ func area_is_clear(zone: Rect2, execlude: Array) -> bool:
 ##Checks if the given zone if fully inside
 func is_inside_rect(zone: Rect2) -> bool:
 	# if the top left and the bottom right corners are inside the zone, then it's valid otherwise it's not valid
-	if not get_global_rect().has_point(zone.position + Vector2(1, 1)) or not get_global_rect().has_point(zone.end - Vector2(1,1)):
+	if not get_global_rect().has_point(zone.position) or not get_global_rect().has_point(zone.end - Vector2(1,1)):
 		return false
 	return true
 
